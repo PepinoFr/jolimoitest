@@ -51,7 +51,7 @@ app.get('/number/:number', (c) => {
   } , 200)
   } catch (error) {
     return c.json({
-      error: error instanceof Error ? error.message : 'An unexpected error occurred'
+      error: error instanceof Error ? error.message : 'Errreur pendant la conversion'
     }, 400);  
   }
 })
