@@ -3,29 +3,35 @@ import { ref } from 'vue';
 import Button from './components/Button.vue';
 import Card from './components/Card.vue'
 import InputNumber from './components/InputNumber.vue';
-let nombre : string | null = null
 const numberRoman = ref<string | null>(null)
 const error = ref<string | null>(null)
+let nombre: string | null = null
+let eventSource: EventSource | null = null
+
 function reset() {
   nombre = null
   error.value = null
   numberRoman.value = null
 }
 
-async function send() {
+function startSSE() {
+  numberRoman.value = ''
+  error.value = ''
 
-  const reponse = await fetch("http://localhost:3000/number/" + nombre);
-  const res = (await reponse.json() as unknown)
+  if (eventSource) {
+    eventSource.close()
+  }
 
-  if (res && typeof res === 'object') {
-    if ('message' in res && typeof res.message === 'string') {
-      numberRoman.value = res.message;
-       error.value = null
-    } else if
-      ('error' in res && typeof res.error === 'string') {
-        numberRoman.value = null
-        error.value = res.error;
-    }
+eventSource = new EventSource(`http://localhost:3000/sse/number/${nombre}`)
+
+  eventSource.onmessage = (event) => {
+    numberRoman.value = event.data
+    eventSource?.close()
+  }
+
+  eventSource.onerror = () => {
+    error.value =  'Une erreur est survenue lors de la conversion.'
+    eventSource?.close()
   }
 }
 </script>
@@ -37,7 +43,7 @@ async function send() {
       <p class="text-center text-sm"> Entrez un nombre entre 1 et 100 pour le convertir en chiffres romains</P>
       <InputNumber label="Nombre à convertir" minNumber="1" maxNumber="100" v-model="nombre" placeholder="ex : 25" />
       <div class="flex flex-row h-full w-full justify-center gap-4 mt-4">
-        <Button @click="send" class="flex-[8]" type="primary">Convertir</Button>
+        <Button @click="startSSE" class="flex-[8]" type="primary">Convertir</Button>
         <Button @click="reset" class="flex-[2]" type="secondary">Reset</Button>
       </div>
       <div v-if="numberRoman" class="text-center space-y-2">

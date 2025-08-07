@@ -41,19 +41,31 @@ app.get('/', (c) => {
 })
 
 
-app.get('/number/:number', (c) => {
-  
-  try {
-    const numberParam = c.req.param('number');
-  const numberRoman = toRoman(Number(numberParam));
-  return c.json({
-    message:numberRoman,
-  } , 200)
-  } catch (error) {
-    return c.json({
-      error: error instanceof Error ? error.message : 'An unexpected error occurred'
-    }, 400);  
+app.get('/sse/number/:number', async (c) => {
+  const number = parseInt(c.req.param('number') || '0')
+
+  if (isNaN(number) || number < 1 || number > 100) {
+    return new Response('Mauvais numero', { status: 400 })
   }
+
+  const stream = new ReadableStream({
+    start(controller) {
+      const encoder = new TextEncoder()
+      const roman = toRoman(number)
+
+      const message = `data: ${roman}\n\n`
+      controller.enqueue(encoder.encode(message))
+      controller.close()
+    }
+  })
+
+  return new Response(stream, {
+    headers: {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      'Connection': 'keep-alive'
+    }
+  })
 })
 
 serve({
